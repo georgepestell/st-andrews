@@ -1,0 +1,71 @@
+W11-SP FAQ
+
+This FAQ contains answers to questions received for the W11-SP practical.
+
+    Jon
+
+
+
+---------------------------------------------------------------------
+
+Q: I understand that we are not to edit the function signatures for any of the functions in the header files, but are we allowed to add more function prototypes?
+
+A: Adding more functions to the header (module interface) that your implementation has to rely on for it to work is not advised — it is important to be able to stick to a given interface, just as you have been doing in Java so far. Why is it that you wish to add more “publicly” visible functions?
+
+Of course, you can add any number of static (in the C sense) helper functions to your implementation in the .c file (these are akin to “private” helper methods in Java)  if you wish. You can pre-declare them as static at the top of the .c file so that the order of their implementation does not matter and they can be called safely from those functions that are declared in the header file (i.e. the “public” ones). 
+
+-----------------------
+
+Q: In 'Stack_clear', does a valid implementation require that elements (in the store) are set to NULL or would it suffice if they can no longer be accessed after clear has been called?
+
+A: Try to think about what would be best and write about it in your report. You could probably argue a number of ways, but you should ultimately explain and justify clearly your design and implementation of Stacks and tests in your report.
+
+-----------------------
+
+Q: Are we supposed to use an array to represent the stack or are we allowed to use other data types such as a linked list?
+
+A: The stack is supposed to be baed on a dynamically allocated array and the handout specifically mentions among other things
+
+- In this practical you will write an array-based implementation of a fixed-size generic Stack in C. 
+- you are supposed to implement this stack using a dynamically allocated array, 
+- You will have to allocate enough space for a dynamically allocated array of max_size void* elements. 
+
+-----------------------
+
+Q: The description for Stack_clear states it should return the given stack to "an empty state". Is it also a mandatory requirement that this method needs to clear the memory allocated to the pointer array.
+
+A: You should look at the module interface comments for clear and destroy and try to think about what would be best for these function and write about it in your report. You should ultimately explain and justify clearly your design and implementation of Stacks and tests in your report. Would you expect to be able to re-use a stack after having cleared it?
+
+-----------------------
+
+Q: The project specification mentions the importance of not modifying the Stack interface. Does this extend to other files, such as the TestStack tests - for instance, can we change DEFAULT_MAX_STACK_SIZE to some other value
+
+A: The handout says “As usual, coding to an interface is important, so please don’t change the Stack function signatures that are provided.” but doesn’t mention not changing the TestStack, so of course you can change that.
+
+-----------------------
+
+Q: Are we allowed to add <stdlib.h> header file in Stack.c? 
+
+A: You should definitely include all relevant header files that are needed by your implementation to  the .c files, so if your implementation needs <stdlib.h> please do include it.
+
+-----------------------
+
+Q: Since the intended behaviour for the for the Blocking Stack is to block indefinitely when, for example, popping an empty stack, how would we use assertions to test that the stack does so? 
+
+A: Simply popping an empty stack with a single thread may not help you. The handout mentions that
+you might also be able to demonstrate the blocking aspect visually in a different test/program by making either the pushing or popping thread sleep occasionally such that the other thread has to block.
+
+-----------------------
+
+Q: The specification says that we should use mutexes and semaphores. I was wondering if for the necessary mutexes we can implement them using a semaphore (i.e. as it is done in example bounded_buffer_named_sems.c inside directory L19 on Studres)?
+
+A: A mutex can be implemented using a semaphore if you want as shown in example code.
+
+-----------------------
+
+Q: How should the TestBlockingStack file look, should we declare threads within these tests or should we create extra methods within BlockingStack to hold these threads?
+
+A: The BlockingStack ADT is one that should support thread-safe access when used by multiple client threads. I think you need to think about what would be best in these circumstances. It is really up to you to decide where to place code and you should ultimately explain and justify clearly your design and implementation decisions (for stack and tests) in your report. 
+
+-----------------------
+

@@ -1,0 +1,38 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-c",
+      "TestStack.c"
+    ],
+    "directory": "/home/george/Code/st-andrews/CS2002/practicals/W11-SP/src",
+    "file": "/home/george/Code/st-andrews/CS2002/practicals/W11-SP/src/TestStack.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-c",
+      "Stack.c"
+    ],
+    "directory": "/home/george/Code/st-andrews/CS2002/practicals/W11-SP/src",
+    "file": "/home/george/Code/st-andrews/CS2002/practicals/W11-SP/src/Stack.c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/clang",
+      "-g",
+      "-Wall",
+      "-Wextra",
+      "-c",
+      "TestBlockingStack.c"
+    ],
+    "directory": "/home/george/Code/st-andrews/CS2002/practicals/W11-SP/src",
+    "file": "/home/george/Code/st-andrews/CS2002/practicals/W11-SP/src/TestBlockingStack.c"
+  }
+]
