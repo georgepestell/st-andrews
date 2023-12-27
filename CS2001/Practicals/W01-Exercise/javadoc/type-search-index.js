@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"<Unnamed>","l":"DictionaryLoader"},{"p":"<Unnamed>","l":"ISpellChecker"},{"p":"<Unnamed>","l":"SpellChecker"},{"p":"<Unnamed>","l":"SpellCheckResult"}]
