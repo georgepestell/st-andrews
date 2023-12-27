@@ -1,0 +1,82 @@
+language ESSENCE' 1.0
+
+given   n_surgeons,
+        n_op,
+        n_specialities,
+        n_ordering_relations
+        : int(0..)
+
+
+$ The worst-case scenario would have each one after the other
+
+letting Operation   be domain int(1..n_op)
+letting Ordering    be domain int(1..n_ordering_relations)
+letting Surgeon     be domain int(1..n_surgeons)
+letting Speciality  be domain int(1..n_specialities)
+
+
+given duration : matrix indexed by [Operation] of int(0..)
+
+
+
+given available_personnel : matrix indexed by [Speciality] of int(0..)
+given manning : matrix 
+    indexed by [Operation, Speciality]
+    of int
+
+given order : matrix 
+    indexed by [Ordering, int(1..2)] 
+    of Operation
+
+$ Doens't seem like time-tracking is the way forwards as you have to check each var for each time slot.
+$ A better approach ?
+$ 
+
+
+letting worst_case  be sum(duration)
+letting Time        be domain int(1..worst_case)
+
+find start_time, end_time : matrix 
+    indexed by [Operation] 
+    of int(1..worst_case)
+find main_surgeon : matrix 
+    indexed by [Operation]
+    of Surgeon
+find total_duration : int(max(duration)..worst_case)
+
+branching on [total_duration]
+
+$ optimize the duration 
+minimising total_duration
+
+
+such that
+
+$ Apply the simple ordering relationships
+forAll o : Ordering .
+    end_time[order[o,1]] <= start_time[order[o,2]],
+
+forAll i : Operation .
+    end_time[i] <= total_duration /\
+    $ Apply the end_time constraint
+    start_time[i] + duration[i] = end_time[i],
+
+$ Symmetry break the start time to prevent valid switching end and start orders
+forAll i : Operation . i < n_op ->
+    start_time[i] <= start_time[i+1],
+
+$ Check main surgeon conflicts
+forAll o1,o2 : Operation . ((o1 < o2) /\
+    $ Check if they conflict in time
+    start_time[o2] < end_time[o1] /\ end_time[o2] >= start_time[o1]) -> (
+    main_surgeon[o1] < main_surgeon[o2]
+    ),
+
+$ Check specialist personnel availability
+$ Requirements can only change at each operation start time so we can just check those times
+forAll t : Operation .
+    forAll s : Speciality . 
+        sum([manning[i,s] * (start_time[i] <= start_time[t] /\ end_time[i]  > start_time[t]) | i : Operation]) <= available_personnel[s]
+    ,
+
+true

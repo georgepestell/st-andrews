@@ -1,0 +1,37 @@
+language ESSENCE' 1.0
+letting n_op be 12
+letting n_specialities be 4
+letting duration be [0, 9, 2, 7, 6, 1, 4, 4, 3, 4, 7, 0]
+letting available_personnel be [12, 5, 46, 22]
+letting manning be [[0, 0, 0, 0], 
+	[0, 2, 0, 4], 
+	[0, 3, 7, 0], 
+	[6, 0, 0, 8], 
+	[7, 0, 9, 0], 
+	[5, 0, 0, 2], 
+	[7, 0, 10, 0], 
+	[0, 3, 0, 8], 
+	[4, 0, 8, 0], 
+	[5, 0, 0, 6], 
+	[7, 0, 0, 2], 
+	[0, 0, 0, 0]]
+letting n_ordering_relations be 18
+letting order be [[1, 2], 
+	[1, 3], 
+	[1, 4], 
+	[2, 5], 
+	[2, 7], 
+	[2, 9], 
+	[3, 5], 
+	[3, 6], 
+	[3, 9], 
+	[4, 10], 
+	[5, 11], 
+	[6, 8], 
+	[7, 8], 
+	[7, 11], 
+	[8, 10], 
+	[9, 12], 
+	[10, 12], 
+	[11, 12]]
+letting n_surgeons be 4
