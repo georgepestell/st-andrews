@@ -1,0 +1,12 @@
+{
+  "latex-workshop.latexindent.args": [
+    "-c",
+    "%DIR%/",
+    "%TMPFILE%",
+    "-y=defaultIndent: '%INDENT%'",
+    "-y=modifyLineBreaks:textWrapOptions:columns: 80",
+    "-m"
+  ],
+  "editor.formatOnSave": true,
+  "latex-workshop.latexindent.path": "~/Documents/.bin/latexindent"
+}
