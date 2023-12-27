@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "postinstall": "cd backend && npm install && cd ../frontend && npm install",
+    "reload" : "pm2 reload",
+    "backend" : "pm2 start",
+    "frontend" : "cd frontend && npm run dev",
+    "deploy" : "cd frontend && npm run build & npm run backend -- --env production",
+    "start" : "npm run backend & npm run frontend",
+    "stop" : "pm2 delete fpf-backend"
+  },
+  "dependencies": {
+    "pm2": "^5.3.0",
+    "pm2-logrotate": "^2.7.0",
+    "vue": "^3.2.41"
+  }
+}

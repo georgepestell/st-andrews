@@ -1,0 +1,106 @@
+@import "@/sass/base/_vars.scss";
+
+.puzzleFeed {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+
+    .feedItem {
+        flex: 0 0 300px;
+        display: flex;
+        flex-direction: column;
+
+        background-color: $accent-color;
+        border-radius: 16px;
+        padding: 10px;
+        box-sizing: border-box;
+
+
+        .feedItem-thumbnail {
+            padding-bottom: 10px;
+            flex: 1 0 auto;
+            user-select: none;
+        }
+
+        .feedItem-meta, .feedItem-manage {
+            flex: 0 1 auto;
+            margin: 0 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feedItem-manage {
+            gap: 3px;
+            margin: 0 5px;
+            .detail-btn {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 3px;
+            }
+            .solution-delete {
+                display: flex;
+                justify-content: space-between;
+            }
+            .btn {
+                padding: 3.5px;
+                border-radius: 4px;
+                cursor: pointer;
+                span{
+                    font-weight: 600;
+                }
+            }
+            .btn:hover{
+                background-color: white;
+            }
+            .feedItem-details {
+                background-color: $detail-color;
+                border-radius: 4px;
+                padding: 6px;
+                display: flex;
+                gap: 3px;
+                flex-direction: column;
+                .row {
+                    display: grid;
+                    grid-template-columns: 40px 1fr;
+                    gap: 10px;
+                    align-items: center;
+                }
+                
+                .field {
+                    white-space: nowrap;
+                    font-weight: bold;
+                }
+                
+                .value {
+                    text-align: right;
+                }
+            }
+        }
+
+        .feedItem-info{
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        
+
+    }
+
+    .feedItem-placeholder {
+        filter: opacity(0.5);
+        color: transparent;
+    }
+}
+
+.puzzleFeed-pageControls {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+    align-self: center;
+}

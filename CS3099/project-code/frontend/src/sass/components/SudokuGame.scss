@@ -1,0 +1,28 @@
+@import "@/sass/base/_vars.scss";
+.diagonal-word-input-form {
+  border: 5px solid $accent-color;
+  padding: 15px;
+}
+
+select {
+  width: 150px;
+}
+
+label {
+  margin-top: 20px;
+}
+.button {
+  margin-top: 20px;
+  width: 150px;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+
+  user-select: none;
+
+  gap: 15px;
+
+}

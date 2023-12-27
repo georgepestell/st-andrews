@@ -1,0 +1,66 @@
+@import "@/sass/base/_vars.scss";
+
+.comments-bar {
+  position: fixed;
+  overflow: hidden;
+
+  top: 100px;
+  right: -100%;
+  
+  display: flex;
+  flex-direction: column;
+
+  height: calc(100% - 100px);
+  width: 60%;
+  
+  max-width: 0;
+
+  background-color: $detail-color;
+  border-radius: 16px 0 0 16px;
+
+  transition: max-width 0.1s ease-out;
+  transition: right 0.01s ease-out;
+  padding: 30px;
+  box-sizing: border-box;
+
+  .comments {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: scroll;
+    padding-right: 15px;
+
+    .comment {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+      background: $background;
+      border-radius: 8px 8px 8px 0;
+
+      .comment-header {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+      .comment-user {
+        font-weight: bold;
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+      }
+
+      .comment-content {
+
+      }
+
+    }
+
+  }
+
+}
+
+.comments-bar.show {
+  max-width: 500px;
+  right: 0;
+}

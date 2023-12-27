@@ -1,0 +1,174 @@
+@import "../base/vars.scss";
+
+$board-grid-color: black;
+
+$error-color: rgb(243, 156, 156);
+
+$normal-foreground: #0035ab;
+$normal-background: $background;
+
+$fixed-foreground: black;
+$fixed-background: #EDEDED;
+
+$selected-foreground: $callToAction-foreground;
+$selected-background: $callToAction-background;
+
+$highlighted-background: #c9f7ed;
+$highlightedFixed-background: $highlighted-background;
+
+$matchingInput-foreground: $normal-foreground;
+$matchingInput-background: #a9e6d9;
+
+$matchingInputFixed-foreground: $fixed-foreground;
+$matchingInputFixed-background: $matchingInput-background;
+
+
+
+.board-container {
+  flex: 3 0 auto;
+
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+  min-width: 250px;
+
+  font-family: $font-family;
+}
+
+.board {
+    width: 100%;
+    aspect-ratio: 1/1;
+
+    display: flex;
+    flex-flow: column nowrap;
+
+    border-radius: 8px;
+    overflow: hidden;
+
+    background: white;
+}
+
+
+.board-row {
+  display: flex;
+  flex-direction: row;
+  
+  flex: 1;
+}
+
+.board-cell {
+  display: flex;
+
+  flex: 1;
+  aspect-ratio: 1/1;
+
+  box-sizing: content-box;
+
+  justify-content: center;
+  align-items: center;
+}
+
+.board-row:not(:last-child) {
+  border-bottom: dashed $board-grid-color 1px;
+}
+
+.board-row:nth-child(3n):not(:last-child) {
+  border-bottom: solid $board-grid-color 1px;
+}
+
+.board-cell:not(:last-child) {
+  border-right: dashed $board-grid-color 1px;
+}
+
+.board-cell:nth-child(3n):not(:last-child) {
+  border-right: solid $board-grid-color 1px;
+}
+
+
+.cell-notes {
+  display: flex;
+  font-size: 0.7em;
+  position: relative;
+  
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cell-notes div {
+  flex: 0 0 33.33%;
+  aspect-ratio: 1 / 1;
+  align-items: center;
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.board-cell {
+  //font-weight: normal;
+  font-size: $font-size;
+  background: $normal-background;
+  color: $normal-foreground;
+  width: 1em;
+  letter-spacing: normal;
+}
+
+.board-cell.fixed {
+  background-color: $fixed-background;
+  color: $fixed-foreground;
+  font-weight: bold;
+}
+
+.cell-note {
+  color: inherit;
+  font-weight: normal;
+} 
+
+.cell-note.highlighted {
+  color: inherit;
+  font-weight: bold;
+} 
+
+.cell-note:not(.active) {
+  color: transparent;
+}
+
+.board-cell.selectedValue {
+  //color: rgb(16, 36, 148);
+  color: $matchingInput-foreground;
+  //font-weight: bold;
+  //font-size: larger;
+  //background-color: rgb(230, 246, 255);
+  background-color: $matchingInput-background;
+}
+
+
+.board-cell.selectedValueFixed {
+  //color: rgb(16, 36, 148);
+  color: $matchingInputFixed-foreground;
+  font-weight: bold;
+  //font-size: larger;
+  //background-color: rgb(188, 229, 255);
+  background-color: $matchingInputFixed-background;
+}
+
+
+.board-cell.highlighted {
+  background-color: $highlighted-background;
+}
+
+.board-cell.highlightedFixed {
+  background-color: $highlightedFixed-background;
+}
+
+.board-cell.error {
+  color: red;
+  background-color: $error-color;
+}
+
+
+.board-cell.selected {
+  color:$selected-foreground;
+  background-color: $selected-background;
+  font-weight: bold;
+}

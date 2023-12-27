@@ -1,0 +1,131 @@
+@import "@/sass/base/_vars.scss";
+$header-color: $accent-color;
+
+header {
+  box-sizing: border-box;
+
+  width: 100%;
+  flex: 0 0 100px;
+  padding: 0 20px;
+
+  display: flex;
+  align-items: center;
+
+  background: $header-color;
+  color: $foreground;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+
+  text-transform: lowercase;
+
+  gap: 30px;
+  
+ // box-shadow: 0px 0px 15px rgba(0,0,0,0.2);
+
+  a {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    span {
+      padding: 8px;
+      border-radius: 4px;
+    }
+  }
+
+  a:hover > span {
+    background-color: $background;
+  }
+
+  .links-container {
+    gap: 20px;
+  }
+
+  .links-container .router-link-active > span {
+    background: $background;
+    
+  }
+
+  #site-title {
+    flex: 0 0 auto;
+    height: 2em;
+    vertical-align: middle;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    height: 100%;
+
+    div,a {
+      height: 100%;
+    }
+
+  }
+  
+  #account-container {
+    display: flex;
+    flex: 1 0 auto;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .headerIcon {
+    background: $background;
+    padding: 10px;
+    border-radius: 50%;
+  }
+
+  .callToAction span {
+    background-color: $callToAction-background;
+    color: $callToAction-foreground;
+  }
+
+  .callToAction:hover span {
+    color: $foreground;
+    background-color: $callToAction-foreground;
+  }
+
+  .dropdown {
+    position: relative;
+    display: flex;
+    align-items :center;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: $header-color;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    border-radius: 0 0 8px 8px;
+    z-index: 1;
+    top: 100%;
+    box-sizing: border-box;
+    padding: 0 30px 30px 30px;
+    left: 50%;
+    transform: translate(-50%, 0);
+
+
+    a {
+      text-decoration: none;
+      flex: 1;
+      height: auto;
+    }
+
+  }
+
+  .dropdown:hover {
+
+    .dropdown-content {
+      display: flex;
+    }
+
+    > a span {
+      background: initial;
+      color: initial;
+    }
+  }
+}

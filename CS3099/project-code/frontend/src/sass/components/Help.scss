@@ -1,0 +1,28 @@
+@import "@/sass/base/_vars.scss";
+
+
+#help {
+    transition: max-height 0.1s ease-out;
+    display: block;
+    position: fixed;
+    height: 0;
+    background: $detail-color;
+    box-sizing: border-box;
+    width: 100%;
+    bottom: -100%;
+    right: 0;
+    padding: 0px 30px;
+    border-radius: 16px 16px 0 0;
+    
+    max-height: 0;
+    height: auto;
+    overflow: hidden;
+
+  
+  }
+  
+  #help.show {
+    max-height: 100%;
+    bottom: 0;
+  }
+  
