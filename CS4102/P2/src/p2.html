@@ -1,0 +1,710 @@
+<!doctype html>
+
+<html>
+
+<body>
+   <canvas width="512" height="512" id="gl-canvas">
+      Sorry; your web browser does not support HTML5’s canvas element.
+   </canvas>
+
+   <button onclick="togglePause()">PAUSE</button>
+
+
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+      type="text/javascript"></script>
+   <script>
+
+      // DEBUG: Pause function
+      function togglePause() {
+         paused = !paused;
+      }
+
+      /**
+       * This function initialises GL and the viewport.
+       */
+      function glInit() {
+         // Initialise and clear viewport
+         gl.clearColor(0., 0., 0., 1);
+         gl.clearDepth(1.0);
+         gl.viewport(0.0, 0.0, canvas.width, canvas.height);
+         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+         gl.enable(gl.DEPTH_TEST);
+      }
+
+      function createTexture(src) {
+
+         gl.activeTexture(gl.TEXTURE0)
+
+         // Create and store data into texture buffer
+         let texture = gl.createTexture();
+         gl.bindTexture(gl.TEXTURE_2D, texture);
+         // Fill with a single pixel so we can start rendering. This is standard approach in WebGL
+         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([127, 127, 255, 255]));
+
+         // load image
+         var image = new Image();
+
+         image.addEventListener("load", function () {
+            console.log('hello');
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.generateMipmap(gl.TEXTURE_2D);
+         });
+
+         //image.src = "textures/marble10 diffuse 1k.jpg";
+         //image.src = "textures/wood 01 Diffuse.jpg";
+         image.src = src;
+         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+         return texture;
+
+      }
+
+      /**
+       * This function draws an object using the supplied shader program
+       * 
+       * @param   bufferObject   An object returned by initObject
+       * @param   shaderprogram  a shader program returned by createProgram
+       */
+      function drawObject(bufferObject, shaderprogram) {
+         gl.useProgram(shaderprogram);
+
+         let vertex_buffer = bufferObject.vertex_buffer;
+         let color_buffer = bufferObject.color_buffer;
+         let normal_buffer = bufferObject.normal_buffer;
+         let index_buffer = bufferObject.index_buffer;
+         let number = bufferObject.numVertices;
+         let tex_buffer = bufferObject.tex_buffer;
+         let texture = bufferObject.texture;
+
+         // Bind buffers
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+         let aPosition = gl.getAttribLocation(shaderprogram, "aPosition");
+         gl.vertexAttribPointer(aPosition, 4, gl.FLOAT, false, 0, 0);
+         gl.enableVertexAttribArray(aPosition);
+
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         let aColor = gl.getAttribLocation(shaderprogram, "aColor");
+         gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+         gl.enableVertexAttribArray(aColor);
+
+         gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+         let aNormal = gl.getAttribLocation(shaderprogram, "aNormal");
+         gl.vertexAttribPointer(aNormal, 4, gl.FLOAT, false, 0, 0);
+         gl.enableVertexAttribArray(aNormal);
+
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+         gl.bindTexture(gl.TEXTURE_2D, bufferObject.texture)
+
+         let useTexture = gl.getUniformLocation(shaderprogram, "useTexture");
+         if (bufferObject.texture != null) {
+
+            gl.uniform1i(useTexture, true)
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, tex_buffer);
+            let aTexCoord = gl.getAttribLocation(shaderprogram, "aTexCoord");
+            gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aTexCoord);
+         } else {
+            gl.uniform1i(useTexture, false)
+         }
+
+
+         gl.drawElements(gl.TRIANGLES, number, gl.UNSIGNED_SHORT, 0);
+      }
+
+      /**
+       * This function initialises an object. It uploads all its arrays to the GPU
+       * and records the references to each. We can then pass this object to drawObject
+       * which will bind the arrays appropriately
+       * 
+       * @param   object         An object containing arrays for vertices, colors, normals, and indices
+       * @param   shaderprogram  a shader program returned by createProgram
+       */
+      function initObject(object, shaderprogram, texture) {
+         gl.useProgram(shaderprogram);
+
+         // Vertices, colors and indices arrive in the form of 2D matrix objects for ease of manipulation
+         // We need to flatten them and convert them to JS arrays before passing them to WebGL
+         let vertices = object.vertices.flat();
+         let colors = object.colors.flat();
+         let indices = object.indices.flat();
+         let normals = object.normals.flat();
+         let texcoords = object.texcoords.flat();
+
+         // Create and store data into vertex buffer
+         let vertex_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+         // Create and store data into color buffer
+         let color_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+         // Create and store data into color buffer
+         let normal_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+
+         // Create and store data into index buffer
+         let index_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+
+         let tex_buffer = null;
+         if (texture != null) {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            tex_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, tex_buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+         }
+
+         return {
+            vertex_buffer: vertex_buffer,
+            color_buffer: color_buffer,
+            normal_buffer: normal_buffer,
+            index_buffer: index_buffer,
+            tex_buffer: tex_buffer,
+            numVertices: indices.length,
+            texture: texture
+         };
+      }
+
+      /**
+       * This function compiles the supplied vertex and fragment shaders into a program
+       * 
+       * @param   vertCode  Vertex shader code, written in GLSL
+       * @param   fragCode  Fragment shader code, written in GLSL
+       * 
+       * @returns    Shader program
+       */
+      function createProgram(vertCode, fragCode) {
+         // Compile and upload shader programs
+         let vertShader = gl.createShader(gl.VERTEX_SHADER);
+         gl.shaderSource(vertShader, vertCode);
+         gl.compileShader(vertShader);
+
+         let fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+         gl.shaderSource(fragShader, fragCode);
+         gl.compileShader(fragShader);
+
+         let shaderprogram = gl.createProgram();
+         gl.attachShader(shaderprogram, vertShader);
+         gl.attachShader(shaderprogram, fragShader);
+         gl.linkProgram(shaderprogram);
+
+         gl.useProgram(shaderprogram);
+
+         return shaderprogram;
+      }
+   </script>
+   <script>
+      function diamond() {
+
+         // Define diamond
+         var vertices = [
+            // Bottom Front Left
+            [0, -1, 0, 1],   // Bottom
+            [-0.4, 0, 0, 1],    // Middle Left
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+
+            // Bottom Front Middle
+            [0, -1, 0, 1],   // Bottom
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+
+            // Bottom Front Right
+            [0, -1, 0, 1],   // Bottom
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+            [0.4, 0, 0, 1],    // Middle Right
+
+            // Bottom Back Right
+            [0, -1, 0, 1],   // Bottom
+            [0.4, 0, 0, 1],    // Middle Right
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+
+            // Bottom Back Middle
+            [0, -1, 0, 1],   // Bottom
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+
+            // Bottom Back Left
+            [0, -1, 0, 1],   // Bottom
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+            [-0.4, 0, 0, 1],    // Middle Left
+
+            // Top Front Left
+            [0, 1, 0, 1],     // Top
+            [-0.4, 0, 0, 1],    // Middle Left
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+
+            // Top Front Middle
+            [0, 1, 0, 1],     // Top
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+
+            // Top Front Right
+            [0, 1, 0, 1],     // Top
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+            [0.4, 0, 0, 1],    // Middle Right
+
+            // Top Back Right
+            [0, 1, 0, 1],     // Top
+            [0.4, 0, 0, 1],    // Middle Right
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+
+            // Top Back Middle
+            [0, 1, 0, 1],     // Top
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+
+            // Top Back Left
+            [0, 1, 0, 1],     // Top
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+            [-0.4, 0, 0, 1],    // Middle Left
+         ]
+
+         var colors = [
+            // Bottom Front Left
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Middle Left
+            0.12, 0.95, 0.49, 1,  // Middle Front Left
+
+            // Bottom Front Middle
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+            // Bottom Front Right
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Middle Front Right
+            0.12, 0.95, 0.49, 1,  // Middle Right
+
+            // Bottom Back Right
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Bottom Back Middle
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Middle Back Right
+            0.12, 0.95, 0.49, 1,  // Middle Back Left
+
+            // Bottom Back Left
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Front Left
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Front Middle
+            0.12, 0.95, 0.49, 1,  // Top
+            0.12, 0.95, 0.49, 1,  // Middle Front Left
+            0.12, 0.95, 0.49, 1,  // Middle Front Right
+
+            // Top Front Right
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Back Right
+            0.12, 0.95, 0.49, 1,  // Top
+            0.12, 0.95, 0.49, 1,  // Middle Right
+            0.12, 0.95, 0.49, 1,  // Middle Back Right
+
+            // Top Back Middle
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Back Left
+            0.12, 0.95, 0.49, 1,  // Top
+            0.12, 0.95, 0.49, 1,  // Middle Back Left
+            0.12, 0.95, 0.49, 1,  // Middle
+         ]
+
+         var indices = [
+            [0, 1, 2],  // Bottom Front Left
+            [3, 4, 5],  // Bottom Front Middle
+            [6, 7, 8],  // Bottom Front Right
+            [9, 10, 11],  // Bottom Back Right
+            [12, 13, 14],  // Bottom Back Middke
+            [15, 16, 17],  // Bottom Back Left
+            [18, 19, 20],  // Top Front Left
+            [21, 22, 23],  // Top Front Middle
+            [24, 25, 26],  // Top Front Right
+            [27, 28, 29],  // Top Back Right
+            [30, 31, 32],  // Top Back Middle
+            [33, 34, 35]  // Top Back Left
+         ]
+
+         // The width of the object is from -0.4 to 0.4 (40% max width).
+         // The width of the texture is 0 to 1 so should span 0.3 to 0.7
+         var texcoords = [
+            [0.5, 0], [0.3, 0.5], [0.4, 0.5], // Bottom Front Left
+            [0.5, 0], [0.4, 0.5], [0.6, 0.5], // Bottom Front Middle
+            [0.5, 0], [0.6, 0.5], [0.7, 0.5],     // Bottom Front Right
+            [0.5, 0], [0.7, 0.5], [0.6, 0.5],     // Bottom Back Right
+            [0.5, 0], [0.6, 0.5], [0.4, 0.5], // Bottom Back Middle
+            [0.5, 0], [0.4, 0.5], [0.3, 0.5],     // Bottom Back Left
+
+            [0.5, 1], [0.2, 0.5], [0.4, 0.5], // Bottom Front Left
+            [0.5, 1], [0.4, 0.5], [0.6, 0.5], // Bottom Front Middle
+            [0.5, 1], [0.6, 0.5], [0.8, 0.5],     // Bottom Front Right
+            [0.5, 1], [0.8, 0.5], [0.6, 0.5],     // Bottom Back Right
+            [0.5, 1], [0.6, 0.5], [0.4, 0.5], // Bottom Back Middle
+            [0.5, 1], [0.4, 0.5], [0.2, 0.5],     // Bottom Back Left
+         ]
+
+         // Normals calculated using getNormals.js file
+         var normals = [
+            [-0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0, -0.1961161494255066, -0.9805806875228882, 0],
+            [0, -0.1961161494255066, -0.9805806875228882, 0],
+            [0, -0.1961161494255066, -0.9805806875228882, 0],
+            [0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0, -0.1961161494255066, 0.9805806875228882, 0],
+            [0, -0.1961161494255066, 0.9805806875228882, 0],
+            [0, -0.1961161494255066, 0.9805806875228882, 0],
+            [-0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [0, -0.1961161494255066, 0.9805806875228882, 0],
+            [0, -0.1961161494255066, 0.9805806875228882, 0],
+            [0, -0.1961161494255066, 0.9805806875228882, 0],
+            [-0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, 0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [-0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0, -0.1961161494255066, -0.9805806875228882, 0],
+            [0, -0.1961161494255066, -0.9805806875228882, 0],
+            [0, -0.1961161494255066, -0.9805806875228882, 0],
+            [0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0],
+            [0.6804138422012329, -0.27216553688049316, -0.6804138422012329, 0]
+         ];
+
+         return {
+            vertices: vertices,
+            colors: colors,
+            indices: indices,
+            normals: normals,
+            texcoords: texcoords
+         };
+      }
+
+      // A second shape to add to the scene
+      function cube() {
+         let vertices = [     // 24 vertices defining the cube
+            [-0.5, -0.5, -0.5, 1], // first face
+            [0.5, -0.5, -0.5, 1],
+            [0.5, 0.5, -0.5, 1],
+            [-0.5, 0.5, -0.5, 1],
+            [-0.5, -0.5, 0.5, 1], // second face
+            [0.5, -0.5, 0.5, 1],
+            [0.5, 0.5, 0.5, 1],
+            [-0.5, 0.5, 0.5, 1],
+            [-0.5, -0.5, -0.5, 1], // third face
+            [0.5, -0.5, -0.5, 1],
+            [0.5, -0.5, 0.5, 1],
+            [-0.5, -0.5, 0.5, 1],
+            [0.5, 0.5, -0.5, 1], // fourth face 
+            [-0.5, 0.5, -0.5, 1],
+            [0.5, 0.5, 0.5, 1],
+            [-0.5, 0.5, 0.5, 1],
+            [-0.5, -0.5, -0.5, 1], // fifth face
+            [-0.5, 0.5, -0.5, 1],
+            [-0.5, -0.5, 0.5, 1],
+            [-0.5, 0.5, 0.5, 1],
+            [0.5, -0.5, -0.5, 1], // sixth face
+            [0.5, 0.5, -0.5, 1],
+            [0.5, -0.5, 0.5, 1],
+            [0.5, 0.5, 0.5, 1],
+         ];
+
+         let indices = [
+            [0, 1, 2],
+            [0, 2, 3],
+            [4, 5, 6],
+            [4, 6, 7],
+            [8, 9, 10],
+            [8, 10, 11],
+            [12, 13, 14],
+            [13, 14, 15],
+            [16, 17, 18],
+            [17, 18, 19],
+            [20, 21, 22],
+            [21, 22, 23],
+         ];
+
+         let colors = [
+            [1, 0, 1, 1],    // purple
+            [1, 0, 1, 1],
+            [1, 0, 1, 1],
+            [1, 0, 1, 1],
+            [1, 1, 1, 1],    // white
+            [1, 1, 1, 1],
+            [1, 1, 1, 1],
+            [1, 1, 1, 1],
+            [0, 0, 1, 1],    // blue 
+            [0, 0, 1, 1],
+            [0, 0, 1, 1],
+            [0, 0, 1, 1],
+            [0, 1, 1, 1],    // cyan
+            [0, 1, 1, 1],
+            [0, 1, 1, 1],
+            [0, 1, 1, 1],
+            [1, 0, 0, 1],    // red
+            [1, 0, 0, 1],
+            [1, 0, 0, 1],
+            [1, 0, 0, 1],
+            [1, 1, 0, 1],    // yellow 
+            [1, 1, 0, 1],
+            [1, 1, 0, 1],
+            [1, 1, 0, 1],
+         ];
+
+         let normals = [     // 24 vertices defining the cube
+            [0, 0, -1, 0], // first face
+            [0, 0, -1, 0],
+            [0, 0, -1, 0],
+            [0, 0, -1, 0],
+            [0, 0, 1, 0], // second face
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, -1, 0, 0], // third face
+            [0, -1, 0, 0],
+            [0, -1, 0, 0],
+            [0, -1, 0, 0],
+            [0, 1, 0, 0], // fourth face 
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [-1, 0, 0, 0], // fifth face
+            [-1, 0, 0, 0],
+            [-1, 0, 0, 0],
+            [-1, 0, 0, 0],
+            [1, 0, 0, 0], // sixth face
+            [1, 0, 0, 0],
+            [1, 0, 0, 0],
+            [1, 0, 0, 0],
+         ];
+
+         let texcoords = [
+            [0, 0], [1, 0], [1, 1], [0, 1],
+            [0, 0], [1, 0], [1, 1], [0, 1],
+            [0, 0], [1, 0], [1, 1], [0, 1],
+            [0, 0], [1, 0], [0, 1], [1, 1],
+            [0, 0], [1, 0], [0, 1], [1, 1],
+            [0, 0], [1, 0], [0, 1], [1, 1],
+         ];
+         return {
+            vertices: vertices,
+            colors: colors,
+            indices: indices,
+            normals: normals,
+            texcoords: texcoords
+         };
+      }
+   </script>
+
+   <script>
+      // GLSL shader code
+      // Note that uPerspectiveMatrix, uModelMatrix and uViewMatrix now multiply aPosition
+      const vertCode = `
+            attribute vec4 aPosition;
+            attribute vec4 aColor;
+            attribute vec2 aTexCoord;
+            attribute vec4 aNormal;
+
+            uniform mat4 uModelMatrix;
+            uniform mat4 uViewMatrix;
+            uniform mat4 uPerspectiveMatrix;
+            uniform mat4 uNormalMatrix;
+
+            varying vec4 vColor;
+            varying vec2 vTexCoord;
+            varying vec3 vLighting;
+            void main() {
+               gl_Position = uPerspectiveMatrix * uViewMatrix * uModelMatrix * aPosition;
+
+               highp vec3 ambientLight = vec3(0.5, 0.5, 0.5);
+               highp vec3 directionalColor = vec3(1, 0.4, 1);
+               highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+               highp vec4 transformedNormal = uNormalMatrix * aNormal;
+
+               highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+
+               vLighting = ambientLight + (directionalColor * directional);
+               vColor = aColor;
+               vTexCoord = aTexCoord;
+            }
+            `;
+
+      const fragCode = `
+            precision mediump float;
+            varying vec4 vColor;
+            varying vec2 vTexCoord;
+            varying vec3 vLighting;
+            
+            uniform bool useTexture;
+            uniform sampler2D uTexture;
+            void main() {
+
+               if (useTexture ) {
+                  lowp vec4 t = texture2D(uTexture, vTexCoord);
+                  gl_FragColor = vec4(t.rgb * vLighting, vColor.a);
+               } else {
+                  gl_FragColor = vec4(vColor.rgb * vLighting, vColor.a);
+               }
+            }
+            `;  
+   </script>
+
+   <script>
+      // Create a canvas to paint on
+      var canvas = document.getElementById('gl-canvas');
+      var gl = canvas.getContext('webgl');
+
+      glInit();
+      shaderprogram = createProgram(vertCode, fragCode);
+
+      // Create a view matrix. glMatrix helps us here with lookAt function
+      let M_view = mat4.create();
+      mat4.lookAt(M_view, [1.4, 1.5, -2], [0, 0, 0], [0, 1, 0]);
+
+      // Create a perspective matrix. glMatrix helps us here with perspective function
+      let P = mat4.create();
+      mat4.perspective(P, Math.PI / 2, canvas.width / canvas.height, .01, 10);
+
+      // Create object one -- a scaled and translated cube
+      let mossDiamond = diamond();
+      let meatCube = cube();
+      let greenDiamond = diamond();
+
+      let M1_model = mat4.create();
+      mat4.fromScaling(M1_model, [1, 1, 1]);
+      mat4.translate(M1_model, M1_model, [0.0, 0.0, 0]);
+
+      let M2_model = mat4.create();
+      mat4.fromScaling(M2_model, [0.6, 0.6, 0.6]);
+      mat4.translate(M2_model, M2_model, [0.1, 0, 0])
+
+      let M3_model = mat4.create();
+      mat4.fromScaling(M3_model, [0.8, 0.8, 0.8]);
+      mat4.translate(M3_model, M3_model, [2, 0, 0])
+
+
+      // Tell WebGL to use M_view as the GLSL uniform uViewMatrix
+      let ViewLoc = gl.getUniformLocation(shaderprogram, "uViewMatrix");
+      gl.uniformMatrix4fv(ViewLoc, false, new Float32Array(M_view));
+
+      // Tell WebGL to use P as the GLSL uniform uPerspectiveMatrix
+      let PerspLoc = gl.getUniformLocation(shaderprogram, "uPerspectiveMatrix");
+      gl.uniformMatrix4fv(PerspLoc, false, new Float32Array(P));
+
+      let mossTexture = createTexture("textures/moss.jpg");
+      let mossDiamondBuffers = initObject(mossDiamond, shaderprogram, mossTexture);
+
+      let meatTexture = createTexture("textures/meat.jpg");
+      let meatCubeBuffers = initObject(meatCube, shaderprogram, meatTexture);
+
+      let greenDiamondBuffers = initObject(greenDiamond, shaderprogram, null);
+
+      mossDiamondBuffers.M_model = M1_model;
+      meatCubeBuffers.M_model = M2_model;
+      greenDiamondBuffers.M_model = M3_model;
+
+      // We have a matrix that represents eachf object's position, scale, and orientation
+      let objects = [mossDiamondBuffers, greenDiamondBuffers, meatCubeBuffers];
+      let speeds = [1.5, 1, 0.5];
+
+      let M = mat4.create();
+      let R = mat4.create();
+      let Norm = mat4.create();
+      let MV = mat4.create();
+
+      let globalRotationPoint = [2, 0.0, 0];
+      let globalRotationAxis = [1, 0, 1]
+
+      let globalTranslateToOrigin = mat4.create();
+      let globalRotationMatrix = mat4.create();
+      let globalTranslateBack = mat4.create();
+
+      mat4.translate(globalTranslateToOrigin, mat4.create(), [-globalRotationPoint[0], -globalRotationPoint[1], -globalRotationPoint[2]]);
+      mat4.translate(globalTranslateBack, mat4.create(), globalRotationPoint);
+
+
+
+      let then = 0;
+      paused = false;
+      function render(now) {
+         if (!paused) {
+            // Clear the screen before drawing more objects
+            glInit();
+
+            // Draw each object
+            for (let i = 0; i < objects.length; i++) {
+               // Set up the Model matrix for GLSL. We will combine rotation with positioning here
+               mat4.identity(M);
+
+               mat4.multiply(M, M, objects[i].M_model);
+
+               // Calculate current rotation amount
+               let globalDirection = 0.001 * now * speeds[i];
+               mat4.rotate(globalRotationMatrix, mat4.create(), globalDirection, globalRotationAxis);
+
+
+               mat4.multiply(M, M, globalTranslateToOrigin);
+               mat4.multiply(M, M, globalRotationMatrix);
+               mat4.multiply(M, M, globalTranslateBack);
+
+               let ModelLoc = gl.getUniformLocation(shaderprogram, "uModelMatrix");
+               gl.uniformMatrix4fv(ModelLoc, false, new Float32Array(M));
+
+               // calc normal matrix
+               mat4.multiply(MV, M_view, M); //, M_view);
+               mat4.invert(Norm, MV);
+               mat4.transpose(Norm, Norm);
+
+               let NormLoc = gl.getUniformLocation(shaderprogram, "uNormalMatrix");
+               gl.uniformMatrix4fv(NormLoc, false, new Float32Array(Norm));
+
+               drawObject(objects[i], shaderprogram);
+            }
+         }
+
+         // request to re-run this function next time a redraw is needed
+         requestAnimationFrame(render);
+      }
+      requestAnimationFrame(render);
+
+   </script>
+</body>
+
+</html>

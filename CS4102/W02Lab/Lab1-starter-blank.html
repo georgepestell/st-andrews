@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+   <body>
+      <canvas width = "400" height = "300" id = "gl-canvas">
+        Sorry; your web browser does not support HTML5’s canvas element.
+      </canvas>
+
+      <script>
+         // Store a reference to the canvas element from the DOM, so we can modify it later 
+         var canvas = document.getElementById('gl-canvas');
+
+         // Store a reference to the GL context. In WebGL, this is an object that holds the 
+         // entire state of our GL program and contains bindings for OpenGL ES functions
+         var gl = canvas.getContext('webgl');
+
+         // Define some geometry here and bind buffers
+
+         // Set the colour of our canvas. Here it is gray, with 90% opacity
+         gl.clearColor(0.9, 0.3, 0.1, 0.9);
+
+         // Set the depth of the canvas. 1 is at the far edge of our clipping volume, so behind all visible objects
+         gl.clearDepth(1.0);
+
+         // Set the resolution of our viewport (the part of the screen that shows the GL scene).
+         // This is given by the size of our canvas
+         gl.viewport(0.0, 0.0, canvas.width, canvas.height);
+
+         // Finally, clear (initialise) the canvas to the colour and depth defined earlier
+         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      
+         // Do some rendering here.....
+      </script>
+   </body>
+</html> 

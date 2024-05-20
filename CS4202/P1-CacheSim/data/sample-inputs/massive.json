@@ -1,0 +1,11 @@
+{
+    "caches": [
+        {
+            "name": "full",
+            "size": 184467440737095432342516165,
+            "line_size": 1,
+            "kind": "full",
+            "replacement_policy": "rr"
+        }
+    ]
+}

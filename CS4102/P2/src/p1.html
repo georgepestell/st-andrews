@@ -1,0 +1,544 @@
+<!doctype html>
+
+<html>
+
+<body>
+   <canvas width="512" height="512" id="gl-canvas">
+      Sorry; your web browser does not support HTML5’s canvas element.
+   </canvas>
+
+   <button onclick="togglePause()">PAUSE</button>
+
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+      type="text/javascript"></script>
+   <script>
+
+      // DEBUG: Pause function
+      function togglePause() {
+         console.log("toggling pause")
+         paused = !paused;
+      }
+
+      /**
+       * This function initialises GL and the viewport.
+       */
+      function glInit() {
+         // Initialise and clear viewport
+         gl.clearColor(0.60, 0.78, 0.57, 1);
+         gl.clearDepth(1.0);
+         gl.viewport(0.0, 0.0, canvas.width, canvas.height);
+         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+         gl.enable(gl.DEPTH_TEST);
+      }
+
+      function createTexture(src) {
+
+         gl.activeTexture(gl.TEXTURE0)
+
+         // Create and store data into texture buffer
+         let texture = gl.createTexture();
+         gl.bindTexture(gl.TEXTURE_2D, texture);
+         // Fill with a single pixel so we can start rendering. This is standard approach in WebGL
+         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([127, 127, 255, 255]));
+
+         // load image
+         var image = new Image();
+
+         image.addEventListener("load", function () {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.generateMipmap(gl.TEXTURE_2D);
+         });
+
+         //image.src = "textures/marble10 diffuse 1k.jpg";
+         //image.src = "textures/wood 01 Diffuse.jpg";
+         image.src = src;
+         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+
+         return texture;
+
+      }
+
+      /**
+       * This function draws an object using the supplied shader program
+       * 
+       * @param   bufferObject   An object returned by initObject
+       * @param   shaderprogram  a shader program returned by createProgram
+       */
+      function drawObject(bufferObject, shaderprogram) {
+         gl.useProgram(shaderprogram);
+
+         let vertex_buffer = bufferObject.vertex_buffer;
+         let color_buffer = bufferObject.color_buffer;
+         let normal_buffer = bufferObject.normal_buffer;
+         let index_buffer = bufferObject.index_buffer;
+         let number = bufferObject.numVertices;
+         let tex_buffer = bufferObject.tex_buffer;
+         let texture = bufferObject.texture;
+
+         // Bind buffers
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+         let aPosition = gl.getAttribLocation(shaderprogram, "aPosition");
+         gl.vertexAttribPointer(aPosition, 4, gl.FLOAT, false, 0, 0);
+         gl.enableVertexAttribArray(aPosition);
+
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         let aColor = gl.getAttribLocation(shaderprogram, "aColor");
+         gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+         gl.enableVertexAttribArray(aColor);
+
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+
+         gl.bindTexture(gl.TEXTURE_2D, bufferObject.texture)
+
+         let useTexture = gl.getUniformLocation(shaderprogram, "useTexture");
+         if (bufferObject.texture != null) {
+
+            gl.uniform1i(useTexture, true)
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, tex_buffer);
+            let aTexCoord = gl.getAttribLocation(shaderprogram, "aTexCoord");
+            gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(aTexCoord);
+         } else {
+            gl.uniform1i(useTexture, false)
+         }
+
+
+         gl.drawElements(gl.TRIANGLES, number, gl.UNSIGNED_SHORT, 0);
+      }
+
+      /**
+       * This function initialises an object. It uploads all its arrays to the GPU
+       * and records the references to each. We can then pass this object to drawObject
+       * which will bind the arrays appropriately
+       * 
+       * @param   object         An object containing arrays for vertices, colors, normals, and indices
+       * @param   shaderprogram  a shader program returned by createProgram
+       */
+      function initObject(object, shaderprogram, texture) {
+         gl.useProgram(shaderprogram);
+
+         // Vertices, colors and indices arrive in the form of 2D matrix objects for ease of manipulation
+         // We need to flatten them and convert them to JS arrays before passing them to WebGL
+         let vertices = object.vertices.flat();
+         let colors = object.colors.flat();
+         let indices = object.indices.flat();
+         let normals = object.normals.flat();
+         let texcoords = object.texcoords.flat();
+
+         // Create and store data into vertex buffer
+         let vertex_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+         // Create and store data into color buffer
+         let color_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+         // Create and store data into color buffer
+         let normal_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+
+         // Create and store data into index buffer
+         let index_buffer = gl.createBuffer();
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+
+         let tex_buffer = null;
+         if (texture != null) {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            tex_buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, tex_buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+         }
+
+         return {
+            vertex_buffer: vertex_buffer,
+            color_buffer: color_buffer,
+            normal_buffer: normal_buffer,
+            index_buffer: index_buffer,
+            tex_buffer: tex_buffer,
+            numVertices: indices.length,
+            texture: texture
+         };
+      }
+
+      /**
+       * This function compiles the supplied vertex and fragment shaders into a program
+       * 
+       * @param   vertCode  Vertex shader code, written in GLSL
+       * @param   fragCode  Fragment shader code, written in GLSL
+       * 
+       * @returns    Shader program
+       */
+      function createProgram(vertCode, fragCode) {
+
+         /**
+          * Compile shaders
+          */
+
+         let vertShader = gl.createShader(gl.VERTEX_SHADER);
+         gl.shaderSource(vertShader, vertCode);
+         gl.compileShader(vertShader);
+
+         let fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+         gl.shaderSource(fragShader, fragCode);
+         gl.compileShader(fragShader);
+
+         /**
+          * Create and use program using shaders
+          */
+
+         let shaderprogram = gl.createProgram();
+         gl.attachShader(shaderprogram, vertShader);
+         gl.attachShader(shaderprogram, fragShader);
+         gl.linkProgram(shaderprogram);
+
+         return shaderprogram;
+      }
+   </script>
+   <script>
+
+      /**
+       * Create a diamond object
+       */
+      function diamond() {
+         var vertices = [
+            // Bottom Front Left
+            [0, -1, 0, 1],   // Bottom
+            [-0.4, 0, 0, 1],    // Middle Left
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+
+            // Bottom Front Middle
+            [0, -1, 0, 1],   // Bottom
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+
+            // Bottom Front Right
+            [0, -1, 0, 1],   // Bottom
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+            [0.4, 0, 0, 1],    // Middle Right
+
+            // Bottom Back Right
+            [0, -1, 0, 1],   // Bottom
+            [0.4, 0, 0, 1],    // Middle Right
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+
+            // Bottom Back Middle
+            [0, -1, 0, 1],   // Bottom
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+
+            // Bottom Back Left
+            [0, -1, 0, 1],   // Bottom
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+            [-0.4, 0, 0, 1],    // Middle Left
+
+            // Top Front Left
+            [0, 1, 0, 1],     // Top
+            [-0.4, 0, 0, 1],    // Middle Left
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+
+            // Top Front Middle
+            [0, 1, 0, 1],     // Top
+            [-0.2, 0, -0.2, 1],  // Middle Front Left
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+
+            // Top Front Right
+            [0, 1, 0, 1],     // Top
+            [0.2, 0, -0.2, 1],  // Middle Front Right
+            [0.4, 0, 0, 1],    // Middle Right
+
+            // Top Back Right
+            [0, 1, 0, 1],     // Top
+            [0.4, 0, 0, 1],    // Middle Right
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+
+            // Top Back Middle
+            [0, 1, 0, 1],     // Top
+            [0.2, 0, 0.2, 1],  // Middle Back Right
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+
+            // Top Back Left
+            [0, 1, 0, 1],     // Top
+            [-0.2, 0, 0.2, 1],  // Middle Back Left
+            [-0.4, 0, 0, 1],    // Middle Left
+         ]
+
+         // Colors defined per vertex separated for each face
+         var colors = [
+            // Bottom Front Left
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Middle Left
+            0.12, 0.95, 0.49, 1,  // Middle Front Left
+
+            // Bottom Front Middle
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+            // Bottom Front Right
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Middle Front Right
+            0.12, 0.95, 0.49, 1,  // Middle Right
+
+            // Bottom Back Right
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Bottom Back Middle
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Middle Back Right
+            0.12, 0.95, 0.49, 1,  // Middle Back Left
+
+            // Bottom Back Left
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Front Left
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Front Middle
+            0.12, 0.95, 0.49, 1,  // Top
+            0.12, 0.95, 0.49, 1,  // Middle Front Left
+            0.12, 0.95, 0.49, 1,  // Middle Front Right
+
+            // Top Front Right
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Back Right
+            0.12, 0.95, 0.49, 1,  // Top
+            0.12, 0.95, 0.49, 1,  // Middle Right
+            0.12, 0.95, 0.49, 1,  // Middle Back Right
+
+            // Top Back Middle
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+            0.12, 0.95, 0.49, 1,  // Bottom
+
+
+            // Top Back Left
+            0.12, 0.95, 0.49, 1,  // Top
+            0.12, 0.95, 0.49, 1,  // Middle Back Left
+            0.12, 0.95, 0.49, 1,  // Middle
+         ]
+
+         // 12 faces, with split vertices
+         var indices = [
+            [0, 1, 2],  // Bottom Front Left
+            [3, 4, 5],  // Bottom Front Middle
+            [6, 7, 8],  // Bottom Front Right
+            [9, 10, 11],  // Bottom Back Right
+            [12, 13, 14],  // Bottom Back Middke
+            [15, 16, 17],  // Bottom Back Left
+            [18, 19, 20],  // Top Front Left
+            [21, 22, 23],  // Top Front Middle
+            [24, 25, 26],  // Top Front Right
+            [27, 28, 29],  // Top Back Right
+            [30, 31, 32],  // Top Back Middle
+            [33, 34, 35]  // Top Back Left
+         ]
+
+         // The width of the object is from -0.4 to 0.4 (40% max width).
+         // The width of the texture is 0 to 1 so should span 0.3 to 0.7
+         var texcoords = [
+            [0.5, 0], [0.3, 0.5], [0.4, 0.5], // Bottom Front Left
+            [0.5, 0], [0.4, 0.5], [0.6, 0.5], // Bottom Front Middle
+            [0.5, 0], [0.6, 0.5], [0.7, 0.5],     // Bottom Front Right
+            [0.5, 0], [0.7, 0.5], [0.6, 0.5],     // Bottom Back Right
+            [0.5, 0], [0.6, 0.5], [0.4, 0.5], // Bottom Back Middle
+            [0.5, 0], [0.4, 0.5], [0.3, 0.5],     // Bottom Back Left
+
+            [0.5, 1], [0.2, 0.5], [0.4, 0.5], // Bottom Front Left
+            [0.5, 1], [0.4, 0.5], [0.6, 0.5], // Bottom Front Middle
+            [0.5, 1], [0.6, 0.5], [0.8, 0.5],     // Bottom Front Right
+            [0.5, 1], [0.8, 0.5], [0.6, 0.5],     // Bottom Back Right
+            [0.5, 1], [0.6, 0.5], [0.4, 0.5], // Bottom Back Middle
+            [0.5, 1], [0.4, 0.5], [0.2, 0.5],     // Bottom Back Left
+         ]
+
+         // Normals not required for this part
+         var normals = [
+         ];
+
+         return {
+            vertices: vertices,
+            colors: colors,
+            indices: indices,
+            texcoords: texcoords,
+            normals: normals
+         };
+      }
+
+      /**
+       * Creates the skewed projection matrix for an oblique projection from
+       * a give angle and scale (to fit objects in clipping volume)
+       */
+      function obliqueProjectionMatrix(angle, scale) {
+         var radians = angle * Math.PI / 180;
+         var cot = 1.0 / Math.tan(radians);
+
+         // Create an identity matrix
+         var m = mat4.create();
+         m = mat4.identity(m);
+
+         // Apply the skew (from lectures on matrix operations)
+         m[8] = cot * scale; // Skew X
+         m[9] = cot * scale; // Skew Y
+
+         return m;
+      }
+
+   </script>
+
+   <script>
+      const vertCode = `
+            attribute vec4 aPosition;
+            attribute vec4 aColor;
+            attribute vec2 aTexCoord;
+
+            uniform mat4 uModelMatrix;
+            uniform mat4 uViewMatrix;
+
+            varying vec4 vColor;
+            varying vec2 vTexCoord;
+            varying vec3 vLighting;
+
+
+
+            void main() {
+               gl_Position = uViewMatrix * uModelMatrix * aPosition;
+
+               highp vec3 ambientLight = vec3(0.5, 0.5, 0.5);
+               vLighting = ambientLight;
+               vColor = aColor;
+               vTexCoord = aTexCoord;
+            }
+            `;
+
+      const fragCode = `
+            precision mediump float;
+
+            varying vec4 vColor;
+            varying vec2 vTexCoord;
+            varying vec3 vLighting;
+            
+            uniform bool useTexture;
+            uniform sampler2D uTexture;
+
+            void main() {
+               if (useTexture ) {
+                  lowp vec4 t = texture2D(uTexture, vTexCoord);
+                  gl_FragColor = vec4(t.rgb * vLighting, vColor.a);
+               } else {
+                  gl_FragColor = vec4(vColor.rgb * vLighting, vColor.a);
+               }
+            }
+            `;
+   </script>
+
+   <script>
+
+      // Fetch the canvas and webgl context
+      var canvas = document.getElementById('gl-canvas');
+      var gl = canvas.getContext('webgl');
+
+      // Reset the window
+      glInit();
+
+      // Create a program
+      shaderprogram = createProgram(vertCode, fragCode);
+
+      // Use the created program
+      gl.useProgram(shaderprogram);
+
+      // Create object one - a scaled and translated cube
+      let mossDiamond = diamond();
+
+      // Create position matrix for the mossDiamond
+      // Keep it centered at the origin
+      // Scale it down to fit in clipping volume
+      let M1_model = mat4.create();
+      mat4.fromScaling(M1_model, [0.5, 0.5, 0.5]);
+      mat4.translate(M1_model, M1_model, [0, 0, 0]);
+
+      // Create a view matrix. glMatrix helps us here with lookAt function
+      let M_view = mat4.create();
+
+      // Skew for oblique projection
+      let obliqueProj = obliqueProjectionMatrix(40, 0.5)
+      mat4.multiply(M_view, obliqueProj, M_view);
+
+      // Tell WebGL to use M_view as the GLSL uniform uViewMatrix
+      let ViewLoc = gl.getUniformLocation(shaderprogram, "uViewMatrix");
+      gl.uniformMatrix4fv(ViewLoc, false, new Float32Array(M_view));
+
+      let mossTexture = createTexture("textures/moss.jpg");
+      let mossDiamondBuffers = initObject(mossDiamond, shaderprogram, mossTexture);
+      mossDiamondBuffers.M_model = M1_model;
+
+      // We have a matrix that represents eachf object's position, scale, and orientation
+      let objects = [mossDiamondBuffers];
+      let directions = [[0.0, 0.001, 0.0]];
+
+      let M = mat4.create();
+      let R = mat4.create();
+      let Norm = mat4.create();
+      let MV = mat4.create();
+
+      let then = 0;
+      paused = false;
+      function render(now) {
+
+         if (!paused) {
+            // Clear the screen before drawing more on screen.
+            glInit();
+
+            // Draw each object
+            for (let i = 0; i < objects.length; i++) {
+               // Set up the Model matrix for GLSL. We will combine rotation with positioning here
+               mat4.identity(R);
+               mat4.rotateX(R, R, directions[i][0] * now);
+               mat4.rotateY(R, R, directions[i][1] * now);
+               mat4.rotateZ(R, R, directions[i][2] * now);
+               mat4.multiply(M, objects[i].M_model, R);
+
+               let ModelLoc = gl.getUniformLocation(shaderprogram, "uModelMatrix");
+               gl.uniformMatrix4fv(ModelLoc, false, new Float32Array(M));
+
+               // calc normal matrix
+               mat4.multiply(MV, M_view, M); //, M_view);
+               mat4.invert(Norm, MV);
+               mat4.transpose(Norm, Norm);
+
+               let NormLoc = gl.getUniformLocation(shaderprogram, "uNormalMatrix");
+               gl.uniformMatrix4fv(NormLoc, false, new Float32Array(Norm));
+
+               drawObject(objects[i], shaderprogram);
+            }
+         }
+
+         // request to re-run this function next time a redraw is needed
+         requestAnimationFrame(render);
+      }
+      requestAnimationFrame(render);
+
+   </script>
+</body>
+
+</html>

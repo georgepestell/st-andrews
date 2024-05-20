@@ -1,0 +1,183 @@
+<!doctype html>
+<html>
+   <body>
+      <canvas width = "512" height = "512" id = "gl-canvas">
+        Sorry; your web browser does not support HTML5’s canvas element.
+      </canvas>
+
+      <script>
+         // Create a canvas to paint on
+         var canvas = document.getElementById('gl-canvas');
+         var gl = canvas.getContext('webgl');
+
+         // Define and store geometry
+
+         /* Vertices are provided as a flat array or floating point numbers. 
+            Here we use Cartesian (x,y,z) coordinates directly in screen coordinates.
+            Each vertex (point) is defined by three numbers (x,y,z). 
+            Below, we split them into rows to make them more readable.
+            These vertices define four corners of a square in 2D */
+         var vertices = [    
+            -0.25,    -0.5,    0,
+             0.25,    -0.5,    0,
+            -0.6,   0,       0,
+            0.6,    0,       0,
+            -0.25,    0.5,     0,
+            0.25,     0.5,     0,
+         ];
+         
+         /* Same applies to colours. Here, we use four floating point numbers per vertex.
+            These represent red, green, blue, and alpha (opacity).
+            Each row of four corresponds to a vertex defined above.
+            Again, we write them in rows, but this is a flat JavaScript array.
+            Each row below corresponds to purple, so all vertices will have the same colour. */
+         var colors = [  
+            1,0,1,1, 
+            1,0,1,1,
+            1,0,0.4,1,
+            1,0,1,1,
+            1,0,1,0.2,
+            1,0,1,1,
+         ];
+
+         /* In order to draw solid shapes, we need to group vertices into polygons.
+            In WebGL, we will always break shapes into triangles. Each triangle is 
+            defined by a list of three vertices. Each vertex is identified by an index so
+            0 represents the first vertex defined above, 1 the second, etc. The array below 
+            defines two triangles (three indices per row, one row per triangle). */
+         var indices = [ 
+            0,1,2,
+            1,2,3,
+            2,3,4,
+            3,4,5,
+            4,5,0,
+            5,0,1
+         ];
+
+         
+         /* The arrays we defined above are simple JavaScript arrays. WebGL and the GPU know
+            nothing about them yet. We will need to transfer these arrays onto the GPU so it
+            can use them for drawing. To do this, we will first need to allocate some
+            memory buffers on the GPU. We will ask WebGL to do this for us. 
+            
+            GL uses a static context and binding which is not intuitive. There are two types
+            of arrays: buffers that store data arrays (ARRAY_BUFFER) and buffers that store
+            indices into other buffers (ELEMENT_ARRAY_BUFFER). The only important thing to
+            know is that we use ELEMENT_ARRAY_BUFFER for indices, and ARRAY_BUFFER for everything else. */
+         
+         // Create a reference to a new GPU buffer and store it in a variable
+         var vertex_buffer = gl.createBuffer ();
+         
+         // GL requires us to provide a reference to a buffer each time we try to use it.
+         // Unintuitively, we have to do this /before/ the operation by "binding" this 
+         // reference to the global ARRAY_BUFFER. Here, we want to manipulate the vertex_buffer
+         // we have just created so we bind vertex_buffer to ARRAY_BUFFER first.
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+         
+         // Now we will fill the ARRAY_BUFFER (which is now bound to the newly created vertex_buffer)
+         // with the data stored in the "vertices" array. We will specify the datatype used by
+         // the GPU (float32) and the usage mode (write once, draw many times).
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+         // Repeat the same time for colours. Create a buffer and store the reference, bind the new
+         // buffer to the global ARRAY_BUFFER, and fill it with the contents of the colours array.
+         var color_buffer = gl.createBuffer ();
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+         // Repeat the same for indices. GL deals with these differently, so here we must bind
+         // to the ELEMENT_ARRAY_BUFFER. These indices are integers so we use uint16.
+         var index_buffer = gl.createBuffer ();
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+
+         /* Next, we need to provide some GLSL shader code. We will write these in GLSL and store them
+            as strings. The following commands simply create two JavaScript strings. The strings do not
+            do anything at all right now, it's just source code. */
+
+         // The vertex shader. This tiny program will receive one vertex position and calculate a new position.
+         // The new position will be passed to the driver as gl_Position.
+         // The data are received from JavaScript as "attribute" variables (read-only). In addition to setting 
+         // gl_Position (which vertex shader must do), we can also write some values into "varying" variables. 
+         // These can be accessed by the fragment shader later. 
+         // Here, we simply pass the vertex position and colour unchanged.
+         const vertCode = `
+            attribute vec4 aPosition;
+            attribute vec4 aColor;
+            varying vec4 vColor;
+            void main() {
+               gl_Position = aPosition;
+               vColor = aColor;
+            }
+            `;
+
+         // Fragment shader receives a fragment (part of an object visible in one pixel) and calculates its
+         // colour. The new colour will be passed on as gl_FragColor.
+         // We can read the "varying" variables passed to us by the vertex shader (here: vColor) but we can
+         // no longer change them (read-only). Here, we simply pass the unchanged colour by setting gl_FragColor.
+         const fragCode = `
+            precision mediump float;
+            varying vec4 vColor;
+            void main() {
+                gl_FragColor = vColor;
+            }
+            `;
+
+         /* Finally, we need to put everything together by compiling and uploading shader programs */
+         
+         // Start with the vertex shader. As before, create a shader on the GPU and remember its reference
+         var vertShader = gl.createShader(gl.VERTEX_SHADER);
+
+         // We will load the source code (stored in a JS string) into the area represented by this reference
+         gl.shaderSource(vertShader, vertCode);
+
+         // And ask the driver to compile the source code into binary form our GPU can execute.
+         gl.compileShader(vertShader);
+
+         // Now do exactly the same thing with our fragment shader
+         var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+         gl.shaderSource(fragShader, fragCode);
+         gl.compileShader(fragShader);
+
+         // And attach both shaders to the same GL program. We could run multiple GL programs in parallel
+         // and switch contexts, but we will not be needing to do that in this module.
+         var shaderprogram = gl.createProgram();
+         gl.attachShader(shaderprogram, vertShader);
+         gl.attachShader(shaderprogram, fragShader);
+         gl.linkProgram(shaderprogram);
+
+         // Our shaders expect some inputs (attributes) -- i.e. the position and colour of each
+         // vertex. We will need to tell GL where to get this information. 
+         // Earlier, we stored vertices, colours and indices into buffers on the GPU.
+         // Now we need to tell GL which buffer represents what. We start with vertex_buffer, so
+         // first we need to bind it to ARRAY_BUFFER to establish context
+         gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+         // Next, get the reference to the aPosition variable in GLSL -- that's the one we want to define
+         var aPosition = gl.getAttribLocation(shaderprogram, "aPosition");
+         // Next, define that aPosition will receive 3 float values at a time: (x,y,z)
+         gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false,0,0);
+         // Tie aPosition to the current ARRAY_BUFFER (remember, this is bound to vertex_buffer)
+         gl.enableVertexAttribArray(aPosition);
+
+         // Repeat the same for aColor and the colour buffer. This time, we get 4 floats at a time: (r,g,b,a) 
+         gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+         var aColor = gl.getAttribLocation(shaderprogram, "aColor");
+         gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false,0,0) ;
+         gl.enableVertexAttribArray(aColor);
+         gl.useProgram(shaderprogram);
+
+         // Initialise and clear viewport
+         gl.clearColor(0.5, 0.5, 0.5, 0.9);
+         gl.clearDepth(1.0);
+         gl.viewport(0.0, 0.0, canvas.width, canvas.height);
+         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+         // Draw elements as triangles
+         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+         gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+      </script>
+   </body>
+</html> 

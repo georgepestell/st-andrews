@@ -1,0 +1,14 @@
+{
+  "todo-tree.tree.showBadges": true,
+  "todo-tree.tree.showCountsInTree": true,
+  "todo-tree.tree.disableCompactFolders": true,
+  "files.associations": {
+    "iostream": "cpp",
+    "format": "cpp",
+    "iosfwd": "cpp",
+    "string": "cpp"
+  },
+  "cmake.configureSettings": {
+    "CMAKE_GENERATOR": "Unix Makefiles"
+  }
+}

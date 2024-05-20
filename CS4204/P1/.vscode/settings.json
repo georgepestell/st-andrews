@@ -1,0 +1,27 @@
+{
+  "boost-test-adapter-feher.tests": [
+    {
+      "testExecutables": [
+        {
+          "path": "./build/test/testSingleLock",
+          "label": "Single Lock Implementation"
+        },
+        {
+          "path": "./build/test/testAtomic",
+          "label": "Atomic Implementation."
+        },
+        {
+          "path": "./build/test/testLockFree",
+          "label": "Lock Free Implementation."
+        },
+        {
+          "path": "./build/test/testMultiLock",
+          "label": "Multi Lock Implementation."
+        }
+      ],
+      "debugConfig": "test-config",
+      "cwd": "${workspaceFolder}"
+    }
+  ],
+  "cmake.generator": "Unix Makefiles"
+}
